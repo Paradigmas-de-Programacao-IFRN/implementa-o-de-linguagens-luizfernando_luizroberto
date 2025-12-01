@@ -83,10 +83,32 @@ public class Regras extends EnquantoBaseListener {
 	}
 
 	@Override
-	public void exitAtribuicao(AtribuicaoContext ctx) {
-		final String id = ctx.ID().getText();
-		final Expressao exp = valores.pegue(ctx.expressao());
-		valores.insira(ctx, new Atribuicao(id, exp));
+	public void exitAtribuicao(EnquantoParser.AtribuicaoContext ctx) {
+		List<Id> ids = valores.pegue(ctx.listaIDs());
+		List<Expressao> exps = valores.pegue(ctx.listaExps());
+		valores.insira(ctx, new Atribuicao(ids, exps));
+	}
+
+	@Override
+	public void exitListaIDs(EnquantoParser.ListaIDsContext ctx) {
+		List<Id> ids = new ArrayList<>();
+
+		for (TerminalNode t : ctx.ID()) {
+			ids.add(new Id(t.getText()));
+		}
+
+		valores.insira(ctx, ids);
+	}
+
+	@Override
+	public void exitListaExps(EnquantoParser.ListaExpsContext ctx) {
+		List<Expressao> exps = new ArrayList<>();
+
+		for (ExpressaoContext e : ctx.expressao()) {
+			exps.add(valores.pegue(e));
+		}
+
+		valores.insira(ctx, exps);
 	}
 
 	@Override
@@ -100,11 +122,12 @@ public class Regras extends EnquantoBaseListener {
 		final Expressao esq = valores.pegue(ctx.expressao(0));
 		final Expressao dir = valores.pegue(ctx.expressao(1));
 		final String op = ctx.getChild(1).getText();
-		final Expressao exp = switch (op) {
-			case "*" -> new ExpMult(esq, dir);
-			case "-" -> new ExpSub(esq, dir);
-			default  -> new ExpSoma(esq, dir);
-		};
+		Expressao exp;
+		switch (op) {
+			case "*": exp = new ExpMult(esq, dir); break;
+			case "-": exp = new ExpSub(esq, dir); break;
+			default:  exp = new ExpSoma(esq, dir); break;
+		}
 		valores.insira(ctx, exp);
 	}
 
@@ -152,11 +175,12 @@ public class Regras extends EnquantoBaseListener {
 		final Expressao esq = valores.pegue(ctx.expressao(0));
 		final Expressao dir = valores.pegue(ctx.expressao(1));
 		final String op = ctx.getChild(1).getText();
-		final Bool exp = switch (op) {
-			case "="  -> new ExpIgual(esq, dir);
-			case "<=" -> new ExpMenorIgual(esq, dir);
-			default   -> new ExpIgual(esq, esq);
-		};
+		Bool exp;
+		switch (op) {
+			case "=":  exp = new ExpIgual(esq, dir); break;
+			case "<=": exp = new ExpMenorIgual(esq, dir); break;
+			default:   exp = new ExpIgual(esq, esq); break;
+		}
 		valores.insira(ctx, exp);
 	}
 }
